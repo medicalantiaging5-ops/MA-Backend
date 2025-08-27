@@ -21,7 +21,8 @@ function createApp() {
     credentials: false
   };
   app.use(cors(corsOptions));
-  app.options('*', cors(corsOptions));
+  // Express v5 with path-to-regexp v8 is strict about wildcards; use a permissive regex instead of '*'
+  app.options(/.*/, cors(corsOptions));
   app.use(compression());
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: false }));
