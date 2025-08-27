@@ -8,6 +8,10 @@ function createRateLimiter(options = {}) {
   const hits = new Map();
 
   return function rateLimiter(req, res, next) {
+    // Allow CORS preflight to pass unthrottled
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
     const now = Date.now();
     const key = req.ip;
     const entry = hits.get(key) || { count: 0, start: now };

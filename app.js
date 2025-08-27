@@ -13,16 +13,14 @@ function createApp() {
   const app = express();
 
   // Core middleware
-  app.use(helmet());
   const corsOptions = {
-    origin: true, // reflect request origin, effectively allowing all
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: false
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   };
   app.use(cors(corsOptions));
   // Express v5 with path-to-regexp v8 is strict about wildcards; use a permissive regex instead of '*'
   app.options(/.*/, cors(corsOptions));
+  app.use(helmet());
   app.use(compression());
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: false }));
