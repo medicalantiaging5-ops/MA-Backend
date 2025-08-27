@@ -1,0 +1,50 @@
+{
+  "info": {
+    "name": "MA Backend - Patients (Onboarding)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Patient onboarding: create/upsert, get, update bio data"
+  },
+  "item": [
+    {
+      "name": "Create/Upsert Patient Bio",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/patients", "host": ["{{baseUrl}}"], "path": ["patients"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\",\n  \"bio\": {\n    \"age\": 29,\n    \"sex\": \"female\",\n    \"nationality\": \"US\",\n    \"occupation\": \"Engineer\",\n    \"maritalStatus\": \"single\",\n    \"phone\": \"+1 555 111 2222\",\n    \"address\": \"123 Main St, City\"\n  },\n  \"emergencyContact\": {\n    \"name\": \"John Doe\",\n    \"phone\": \"+1 555 999 8888\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Get My Patient Bio",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/patients/me", "host": ["{{baseUrl}}"], "path": ["patients","me"] }
+      }
+    },
+    {
+      "name": "Update My Patient Bio",
+      "request": {
+        "method": "PATCH",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/patients/me", "host": ["{{baseUrl}}"], "path": ["patients","me"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bio\": {\n    \"occupation\": \"Senior Engineer\",\n    \"address\": \"456 New Ave, City\"\n  }\n}"
+        }
+      }
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [ { "key": "token", "value": "{{idToken}}", "type": "string" } ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api/v1" },
+    { "key": "idToken", "value": "" }
+  ]
+}
+
+

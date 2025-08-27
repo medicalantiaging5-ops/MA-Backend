@@ -1,0 +1,294 @@
+{
+  "info": {
+    "name": "MA Backend - Authentication",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Authentication flows: signup, me, roles, invitations, password reset, token refresh"
+  },
+  "item": [
+    {
+      "name": "Signup (Email/Password)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/auth/signup", "host": ["{{baseUrl}}"], "path": ["auth","signup"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\",\n  \"password\": \"S3curePass!\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json && json.success && json.data) {",
+              "  if (json.data.uid) pm.environment.set('userUid', json.data.uid);",
+              "  if (json.data.email) pm.environment.set('userEmail', json.data.email);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "201 Created",
+          "originalRequest": {},
+          "status": "Created",
+          "code": 201,
+          "body": "{\n  \"success\": true,\n  \"data\": {\n    \"uid\": \"<UID>\",\n    \"email\": \"jane.doe@example.com\",\n    \"displayName\": \"Jane Doe\",\n    \"profile\": {\n      \"id\": \"<mongoId>\",\n      \"firstName\": \"Jane\",\n      \"lastName\": \"Doe\",\n      \"role\": \"patient\",\n      \"emailVerified\": false\n    }\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Me (Profile)",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth","me"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json && json.success && json.data) {",
+              "  if (json.data.uid) pm.environment.set('userUid', json.data.uid);",
+              "  if (json.data.emailVerified !== undefined) pm.environment.set('emailVerified', json.data.emailVerified);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"success\": true,\n  \"data\": {\n    \"uid\": \"<UID>\",\n    \"email\": \"jane.doe@example.com\",\n    \"displayName\": \"Jane Doe\",\n    \"claims\": { \"role\": \"patient\" },\n    \"emailVerified\": false,\n    \"profile\": {\n      \"id\": \"<mongoId>\",\n      \"firstName\": \"Jane\",\n      \"lastName\": \"Doe\",\n      \"role\": \"patient\",\n      \"emailVerified\": false\n    }\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Password Reset (Send Link)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/auth/password-reset", "host": ["{{baseUrl}}"], "path": ["auth","password-reset"] },
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"jane.doe@example.com\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Password reset request successful', function () {",
+              "  pm.response.to.have.status(200);",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": [ { "name": "200 OK", "status": "OK", "code": 200, "body": "{\n  \"success\": true,\n  \"data\": { \"sent\": true }\n}" } ]
+    },
+    {
+      "name": "Resend Verification Email",
+      "request": {
+        "method": "POST",
+        "url": { "raw": "{{baseUrl}}/auth/email/verification", "host": ["{{baseUrl}}"], "path": ["auth","email","verification"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Verification email sent', function () {",
+              "  pm.response.to.have.status(200);",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"success\": true,\n  \"data\": { \n    \"sent\": true,\n    \"email\": \"jane.doe@example.com\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Create Invitation (Cofounder+)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/auth/invitations", "host": ["{{baseUrl}}"], "path": ["auth","invitations"] },
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"staff@example.com\",\n  \"role\": \"staff\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json && json.data && json.data.token) { pm.environment.set('inviteToken', json.data.token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Accept Invitation (Authenticated)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/auth/invitations/accept", "host": ["{{baseUrl}}"], "path": ["auth","invitations","accept"] },
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{inviteToken}}\"\n}" }
+      }
+    },
+    {
+      "name": "Assign Role (Cofounder+)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/auth/roles/assign", "host": ["{{baseUrl}}"], "path": ["auth","roles","assign"] },
+        "body": { "mode": "raw", "raw": "{\n  \"uid\": \"<TARGET_UID>\",\n  \"role\": \"staff\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json && json.success && json.data) {",
+              "  if (json.data.role) pm.environment.set('assignedRole', json.data.role);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Token Refresh (Firebase Refresh Token)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/auth/token/refresh", "host": ["{{baseUrl}}"], "path": ["auth","token","refresh"] },
+        "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json && json.data) {",
+              "  if (json.data.idToken) pm.environment.set('idToken', json.data.idToken);",
+              "  if (json.data.refreshToken) pm.environment.set('refreshToken', json.data.refreshToken);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client Sign In (Email/Password)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{firebaseApiKey}}",
+          "protocol": "https",
+          "host": ["identitytoolkit","googleapis","com"],
+          "path": ["v1","accounts:signInWithPassword"],
+          "query": [ { "key": "key", "value": "{{firebaseApiKey}}" } ]
+        },
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"S3curePass!\",\n  \"returnSecureToken\": true\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json) {",
+              "  if (json.idToken) pm.environment.set('idToken', json.idToken);",
+              "  if (json.refreshToken) pm.environment.set('refreshToken', json.refreshToken);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Add to Allowlist (Founder Only)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/allowlist", "host": ["{{baseUrl}}"], "path": ["allowlist"] },
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"staff@example.com\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Email added to allowlist', function () {",
+              "  pm.response.to.have.status(201);",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Me (Health Check)",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+      }
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [ { "key": "token", "value": "{{idToken}}", "type": "string" } ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request: Ensure idToken is available if needed",
+          "const idToken = pm.environment.get('idToken');",
+          "if (!idToken && pm.request.auth && pm.request.auth.type === 'bearer') {",
+          "  console.log('Warning: idToken not set in environment');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": []
+}
+
+

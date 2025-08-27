@@ -1,0 +1,15 @@
+- Keep files ≤ 500 lines; split modules early.
+- Architecture: MVC (controllers, models, routers, utils, middleware, services); no views.
+- Avoid classes; prefer pure functions and small modules.
+- Avoid JSDoc annotations; use clear names and brief top-of-file comments only if needed.
+- Choose simplicity and DNRY; minimize dependencies and abstractions.
+- Authentication: verify Firebase ID tokens in middleware; do not issue JWTs.
+- Always use http-status-codes for response status codes.
+- Error payload to frontend must be: { success: false, error: { message, reason } } (message = short label like "Invalid Credentials"; reason = detailed description with stack trace).
+- Centralize error handling; controllers must not send raw errors directly.
+- Validate and sanitize inputs at the route layer; whitelist fields; fail fast.
+- Data access: use lean Mongoose queries; paginate results; add indexes; avoid unbounded scans.
+- Security: enable helmet, CORS, and rate limiting; secrets from .env only; never log PHI/PII.
+- Logging: structured logs (level, message, context); audit all access to PHI.
+- File uploads: images only (jpg, jpeg, png, webp); enforce MIME/type and max size.
+- Routing: prefix all endpoints with /api/v1; keep controller functions small with early returns.
