@@ -57,10 +57,19 @@ router.post('/signup', signupValidators, async (req, res) => {
         role: initialRole,
         emailVerified: false
       });
-      // Fire-and-forget verification email (do not await)
-      signInAndSendVerificationEmail(email, password)
-        .then(() => logger.info('Verification email requested'))
-        .catch((e) => logger.warn('Verification email request failed', { reason: e && e.message ? e.message : 'unknown' }));
+
+      // Attempt to send verification email and surface result in response
+      let verificationEmail = { sent: false };
+      try {
+        await signInAndSendVerificationEmail(email, password);
+        verificationEmail = { sent: true };
+        logger.info('Verification email requested');
+      } catch (e) {
+        const message = 'Verification Email Failed';
+        const reason = e && (e.stack || e.message) ? (e.stack || e.message) : 'unknown error';
+        verificationEmail = { sent: false, error: { message, reason } };
+        logger.warn('Verification email request failed', { reason: e && e.message ? e.message : 'unknown' });
+      }
 
       return res.status(StatusCodes.CREATED).json({
         success: true,
@@ -68,7 +77,8 @@ router.post('/signup', signupValidators, async (req, res) => {
           uid: userRecord.uid,
           email: userRecord.email,
           displayName: userRecord.displayName,
-          profile: { id: profile._id, firstName: profile.firstName, lastName: profile.lastName, role: profile.role, emailVerified: profile.emailVerified }
+          profile: { id: profile._id, firstName: profile.firstName, lastName: profile.lastName, role: profile.role, emailVerified: profile.emailVerified },
+          verificationEmail
         }
       });
     } catch (dbErr) {
