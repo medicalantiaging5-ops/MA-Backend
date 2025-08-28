@@ -33,24 +33,45 @@ async function sendVerificationEmailWithIdToken(idToken) {
   const apiKey = process.env.FIREBASE_API_KEY;
   if (!apiKey) throw new Error('Missing FIREBASE_API_KEY');
   const url = `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${apiKey}`;
-  
+
   const payload = { requestType: 'VERIFY_EMAIL', idToken };
-  
+
   // Add continue URL if set in environment variables
   const continueUrl = process.env.FIREBASE_CONTINUE_URL;
   if (continueUrl && continueUrl.trim()) {
     payload.continueUrl = continueUrl.trim();
   }
-  
-  await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' } });
+
+  try {
+    await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' } });
+  } catch (err) {
+    const apiError = err && err.response && err.response.data && err.response.data.error;
+    const reason = apiError && apiError.message ? apiError.message : (err.message || 'Unknown error');
+    const enriched = new Error(`sendOobCode failed: ${reason}`);
+    enriched.statusCode = err && err.response && err.response.status;
+    throw enriched;
+  }
 }
 
 async function signInAndSendVerificationEmail(email, password) {
   const apiKey = process.env.FIREBASE_API_KEY;
   if (!apiKey) throw new Error('Missing FIREBASE_API_KEY');
   const signInUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
-  const resp = await axios.post(signInUrl, { email, password, returnSecureToken: true }, { headers: { 'Content-Type': 'application/json' } });
-  const idToken = resp.data && resp.data.idToken;
+  let idToken;
+  try {
+    const resp = await axios.post(
+      signInUrl,
+      { email, password, returnSecureToken: true },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    idToken = resp.data && resp.data.idToken;
+  } catch (err) {
+    const apiError = err && err.response && err.response.data && err.response.data.error;
+    const reason = apiError && apiError.message ? apiError.message : (err.message || 'Unknown error');
+    const enriched = new Error(`signInWithPassword failed: ${reason}`);
+    enriched.statusCode = err && err.response && err.response.status;
+    throw enriched;
+  }
   if (!idToken) throw new Error('Failed to obtain idToken during sign-in');
   await sendVerificationEmailWithIdToken(idToken);
 }
