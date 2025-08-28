@@ -103,6 +103,67 @@ router.post('/signup', signupValidators, async (req, res) => {
   }
 });
 
+// Email/password sign-in
+router.post(
+  '/signin',
+  [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').isString().isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Validation Error', reason: JSON.stringify(errors.array()) }
+      });
+    }
+
+    const { email, password } = req.body;
+
+    try {
+      const { idToken, refreshToken } = await signInWithPassword(email, password);
+
+      // Fetch basic user info from Firebase
+      const admin = initFirebaseAdmin();
+      const user = await admin.auth().getUserByEmail(email);
+
+      // Try to include profile if it exists (do not create here)
+      let profile = await User.findOne({ uid: user.uid }).lean();
+      if (profile) {
+        profile = {
+          id: String(profile._id),
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          role: profile.role,
+          emailVerified: !!profile.emailVerified
+        };
+      } else {
+        profile = null;
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          tokens: { idToken, refreshToken },
+          user: {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            emailVerified: !!user.emailVerified
+          },
+          profile
+        }
+      });
+    } catch (err) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        error: { message: 'Sign-in Failed', reason: err.stack || err.message || String(err) }
+      });
+    }
+  }
+);
+
 router.get('/me', verifyFirebaseIdToken, async (req, res) => {
   try {
     const admin = initFirebaseAdmin();
