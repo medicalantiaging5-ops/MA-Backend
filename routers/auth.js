@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { StatusCodes } = require('http-status-codes');
-const { initFirebaseAdmin, signInAndSendVerificationEmail, sendVerificationEmailWithIdToken } = require('../utils/firebase');
+const { initFirebaseAdmin, signInAndSendVerificationEmail, sendVerificationEmailWithIdToken, signInWithPassword } = require('../utils/firebase');
 const logger = require('../utils/logger');
 const User = require('../models/User');
 const { verifyFirebaseIdToken } = require('../middleware/auth');
@@ -60,8 +60,12 @@ router.post('/signup', signupValidators, async (req, res) => {
 
       // Attempt to send verification email and surface result in response
       let verificationEmail = { sent: false };
+      let signupTokens = null;
       try {
-        await signInAndSendVerificationEmail(email, password);
+        // Sign in to obtain ID token and send verification email
+        const { idToken, refreshToken } = await signInWithPassword(email, password);
+        await sendVerificationEmailWithIdToken(idToken);
+        signupTokens = { idToken, refreshToken };
         verificationEmail = { sent: true };
         logger.info('Verification email requested');
       } catch (e) {
@@ -78,6 +82,7 @@ router.post('/signup', signupValidators, async (req, res) => {
           email: userRecord.email,
           displayName: userRecord.displayName,
           profile: { id: profile._id, firstName: profile.firstName, lastName: profile.lastName, role: profile.role, emailVerified: profile.emailVerified },
+          tokens: signupTokens,
           verificationEmail
         }
       });

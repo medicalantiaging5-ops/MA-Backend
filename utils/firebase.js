@@ -53,11 +53,12 @@ async function sendVerificationEmailWithIdToken(idToken) {
   }
 }
 
-async function signInAndSendVerificationEmail(email, password) {
+async function signInWithPassword(email, password) {
   const apiKey = process.env.FIREBASE_API_KEY;
   if (!apiKey) throw new Error('Missing FIREBASE_API_KEY');
   const signInUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
   let idToken;
+  let refreshToken;
   try {
     const resp = await axios.post(
       signInUrl,
@@ -65,6 +66,7 @@ async function signInAndSendVerificationEmail(email, password) {
       { headers: { 'Content-Type': 'application/json' } }
     );
     idToken = resp.data && resp.data.idToken;
+    refreshToken = resp.data && resp.data.refreshToken;
   } catch (err) {
     const apiError = err && err.response && err.response.data && err.response.data.error;
     const reason = apiError && apiError.message ? apiError.message : (err.message || 'Unknown error');
@@ -73,13 +75,20 @@ async function signInAndSendVerificationEmail(email, password) {
     throw enriched;
   }
   if (!idToken) throw new Error('Failed to obtain idToken during sign-in');
+  return { idToken, refreshToken };
+}
+
+async function signInAndSendVerificationEmail(email, password) {
+  const { idToken } = await signInWithPassword(email, password);
   await sendVerificationEmailWithIdToken(idToken);
+  return { idToken };
 }
 
 module.exports = {
   initFirebaseAdmin,
   sendVerificationEmailWithIdToken,
-  signInAndSendVerificationEmail
+  signInAndSendVerificationEmail,
+  signInWithPassword
 };
 
 
